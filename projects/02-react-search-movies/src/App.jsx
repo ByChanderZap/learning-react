@@ -1,34 +1,59 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
+import { useCallback, useState } from 'react'
 import './App.css'
 
-function App() {
-  const [count, setCount] = useState(0)
+import { Movies } from './components/Movies'
+import { useMovies } from './hooks/useMovies'
+import { useSearch } from './hooks/useSearch'
+import debounce from 'just-debounce-it'
+
+function App () {
+  const [sort, setSort] = useState(false)
+  const { search, updateSearch, error } = useSearch()
+  const { movies, getMovies, loading } = useMovies({ search, sort })
+
+  const debouncedGetMovies = useCallback(
+    debounce((search) => {
+      console.log('search', search)
+      getMovies({ search })
+    }, 500)
+    , [])
+
+  const handleSubmit = (event) => {
+    event.preventDefault()
+    getMovies({ search })
+  }
+
+  const handleChange = (event) => {
+    const newSearch = event.target.value
+    updateSearch(newSearch)
+    debouncedGetMovies(newSearch)
+  }
+
+  const handleSort = () => {
+    setSort(!sort)
+  }
 
   return (
-    <>
-      <div>
-        <a href="https://vitejs.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
+    <div className='page'>
+      <header>
+        <h1>Movies search</h1>
+        <form className='form' onSubmit={handleSubmit}>
+          <input name='query' onChange={handleChange} value={search} placeholder='Avengers, Dune, Arrival ...' />
+          <input type='checkbox' onChange={handleSort} checked={sort} />
+          <button type='submit'>Search</button>
+        </form>
+        {error && <p style={{ color: 'red' }}>{error}</p>}
+      </header>
+      <main>
+        {/* Movies */}
+        {
+          loading
+            ? <p>Loading ...</p>
+            : <Movies movies={movies} />
+        }
+
+      </main>
+    </div>
   )
 }
 
